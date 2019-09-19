@@ -1,2 +1,2 @@
 # common
-This is a go common lib, includes log, event driven, media streaming and websocket chat.
+This is a go common lib, includes log, event driven, for media streaming, DFS and websocket chat.
