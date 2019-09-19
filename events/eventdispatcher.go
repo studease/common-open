@@ -103,6 +103,14 @@ func (me *EventDispatcher) removeEventListener(event string, listener *EventList
 
 // HasEventListener checks whether an event listener is registered with this EventDispatcher object for the specified event type
 func (me *EventDispatcher) HasEventListener(event string) bool {
+	curr := utils.GoID()
+	goid := atomic.LoadInt64(&me.goid)
+
+	if atomic.CompareAndSwapInt64(&me.goid, 0, curr) || goid != curr {
+		me.mtx.RLock()
+		defer me.mtx.RUnlock()
+	}
+
 	l := me.listeners[event]
 	return l != nil && l.Len() != 0
 }
