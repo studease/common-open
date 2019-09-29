@@ -37,7 +37,7 @@ type Location struct {
 	// ws-chat
 	Protocol string            `xml:""`
 	Channels []chatcfg.Channel `xml:"Channel"`
-	Query    basecfg.Query     `xml:""`
+	DB       basecfg.DB        `xml:""`
 
 	// sync
 	Tracker    basecfg.URL `xml:""`

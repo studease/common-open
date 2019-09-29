@@ -26,6 +26,7 @@ const (
 	NETSTREAM_PLAY_STREAMNOTFOUND       = "NetStream.Play.StreamNotFound"
 	NETSTREAM_PLAY_UNPUBLISHNOTIFY      = "NetStream.Play.UnpublishNotify"
 	NETSTREAM_PUBLISH_BADNAME           = "NetStream.Publish.BadName"
+	NETSTREAM_PUBLISH_DENIED            = "NetStream.Publish.Denied"
 	NETSTREAM_PUBLISH_IDLE              = "NetStream.Publish.Idle"
 	NETSTREAM_PUBLISH_START             = "NetStream.Publish.Start"
 	NETSTREAM_RECORD_ALREADYEXISTS      = "NetStream.Record.AlreadyExists"

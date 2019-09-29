@@ -110,5 +110,8 @@ func (me *MediaStream) Close() error {
 		t.Close()
 	}
 
+	me.trackIndex = 0
+	me.tracks = make([]av.IMediaTrack, 0)
+
 	return nil
 }

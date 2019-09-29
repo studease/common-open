@@ -116,7 +116,7 @@ func (me *FLV) Format(typ av.Type, timestamp uint32, data []byte) []byte {
 		return Tag(TYPE_DATA, timestamp, data)
 
 	default:
-		panic(fmt.Sprintf("unrecognized packet type %02X", typ))
+		panic(fmt.Sprintf("unrecognized packet type 0x%02X", typ))
 	}
 
 	if track == nil {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/studease/common/log"
-	"github.com/studease/common/rtmp/config"
+	rtmpcfg "github.com/studease/common/rtmp/config"
 	"github.com/studease/common/utils"
 )
 
@@ -27,14 +27,14 @@ const (
 
 // Server defines parameters for running an RTMP server
 type Server struct {
-	CFG     *config.Server
+	CFG     *rtmpcfg.Server
 	Mux     utils.Mux
 	logger  log.ILogger
 	factory log.ILoggerFactory
 }
 
 // Init this class
-func (me *Server) Init(cfg *config.Server, logger log.ILogger, factory log.ILoggerFactory) *Server {
+func (me *Server) Init(cfg *rtmpcfg.Server, logger log.ILogger, factory log.ILoggerFactory) *Server {
 	me.Mux.Init()
 	me.CFG = cfg
 	me.logger = logger

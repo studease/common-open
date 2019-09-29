@@ -11,12 +11,20 @@ import (
 
 var (
 	levels = map[string]level.Level{
-		"none":  level.NONE,
-		"trace": level.TRACE,
-		"debug": level.DEBUG,
-		"info":  level.INFO,
-		"warn":  level.WARN,
-		"error": level.ERROR,
+		"none":   level.NONE,
+		"trace":  level.TRACE,
+		"debug":  level.DEBUG,
+		"debug0": level.DEBUG0,
+		"debug1": level.DEBUG1,
+		"debug2": level.DEBUG2,
+		"debug3": level.DEBUG3,
+		"debug4": level.DEBUG4,
+		"debug5": level.DEBUG5,
+		"debug6": level.DEBUG6,
+		"debug7": level.DEBUG7,
+		"info":   level.INFO,
+		"warn":   level.WARN,
+		"error":  level.ERROR,
 	}
 )
 

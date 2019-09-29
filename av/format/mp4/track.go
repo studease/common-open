@@ -37,7 +37,7 @@ func (me *Track) Format(pkt *av.Packet) []byte {
 		case aac.RAW_FRAME_DATA:
 			return me.getAudioSegment()
 		default:
-			panic(fmt.Sprintf("unrecognized AAC type %02X", pkt.DataType))
+			panic(fmt.Sprintf("unrecognized AAC type 0x%02X", pkt.DataType))
 		}
 
 	case codec.AVC:
@@ -49,11 +49,11 @@ func (me *Track) Format(pkt *av.Packet) []byte {
 		case avc.END_OF_SEQUENCE:
 			return me.getVideoSegment()
 		default:
-			panic(fmt.Sprintf("unrecognized AVC type %02X", pkt.DataType))
+			panic(fmt.Sprintf("unrecognized AVC type 0x%02X", pkt.DataType))
 		}
 
 	default:
-		panic(fmt.Sprintf("unrecognized codec %02X", pkt.Codec))
+		panic(fmt.Sprintf("unrecognized codec 0x%02X", pkt.Codec))
 	}
 }
 

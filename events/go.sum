@@ -1,0 +1,8 @@
+github.com/studease/common v0.0.0-20190919081109-f85ff063ac3c h1:kLr7M/uNQDHRxsB5d6RHfU24a5ZAjiBl0t32cLf5Xas=
+github.com/studease/common v0.0.0-20190919081109-f85ff063ac3c/go.mod h1:mz+LjDD1Sizn4RgHi+vakaQS+RConPZ/3zUlHuWOYoM=
+github.com/studease/common/av v0.0.0-20190919081109-f85ff063ac3c h1:5V59c6Mm23nt06Zh9u60IpI7qFiRo+8lNonttSDDOM0=
+github.com/studease/common/av v0.0.0-20190919081109-f85ff063ac3c/go.mod h1:W9tpfhSBqo+Gxog9R3zh3ipFSyRhOM2Nw3z2f04MygE=
+github.com/studease/common/log v0.0.0-20190919081109-f85ff063ac3c h1:AxAjcJoCT1zvPjVSe70/FdNZ6ZcVEAT2HbDg1MGa0sQ=
+github.com/studease/common/log v0.0.0-20190919081109-f85ff063ac3c/go.mod h1:WJGlcxe1ISqtnPziQls67FqRiCr1gfkGdC/vgeo02so=
+github.com/studease/common/utils v0.0.0-20190919081109-f85ff063ac3c h1:yA6eRq1PjhY+ARDq6uNg+eWtSyTlTiIx7AuuGahX7Qw=
+github.com/studease/common/utils v0.0.0-20190919081109-f85ff063ac3c/go.mod h1:mTpT0BqszcSG7AfH/rWrqKH1Je/EP0AnrUPKmBHH3TI=

@@ -117,7 +117,7 @@ func (me *Track) Format(pkt *av.Packet) []*Packet {
 		return me.getAVCPackets(pkt)
 
 	default:
-		panic(fmt.Sprintf("unrecognized codec %02X", pkt.Codec))
+		panic(fmt.Sprintf("unrecognized codec 0x%02X", pkt.Codec))
 	}
 }
 

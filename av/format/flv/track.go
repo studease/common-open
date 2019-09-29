@@ -6,7 +6,7 @@ import (
 	"github.com/studease/common/log"
 )
 
-// Track inherit from MediaTrack, provides methods to format MP4 fragments
+// Track inherit from MediaTrack, provides methods to format FLV tags
 type Track struct {
 	format.MediaTrack
 

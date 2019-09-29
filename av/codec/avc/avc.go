@@ -148,7 +148,7 @@ func (me *Context) Parse(p *av.Packet) error {
 		me.logger.Debugf(2, "AVC sequence end")
 
 	default:
-		err := fmt.Errorf("unrecognized AVC packet type: %02X", me.DataType)
+		err := fmt.Errorf("unrecognized AVC packet type: 0x%02X", me.DataType)
 		me.logger.Debugf(2, "%v", err)
 		return err
 	}

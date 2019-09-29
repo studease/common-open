@@ -135,7 +135,7 @@ func Encode(b *bytes.Buffer, v *Value) (int, error) {
 		return EncodeUndefined(b)
 
 	default:
-		panic(fmt.Errorf("unrecognized AMF type %02X", v.Type))
+		panic(fmt.Errorf("unrecognized AMF type 0x%02X", v.Type))
 	}
 }
 
@@ -330,9 +330,9 @@ func encodeProperties(b *bytes.Buffer, l *list.List) (int, error) {
 	return i, nil
 }
 
-// EndOfObject writes an END_OF_OBJECT block (0x00 0x00 0x00 0x09) into buffer
+// EndOfObject writes an END_OF_OBJECT block (0x00 0x00 0x09) into buffer
 func EndOfObject(b *bytes.Buffer) (int, error) {
-	return b.Write([]byte{0x00, 0x00, 0x00, 0x09})
+	return b.Write([]byte{0x00, 0x00, 0x09})
 }
 
 // EncodeECMAArray writes an ecma array into buffer

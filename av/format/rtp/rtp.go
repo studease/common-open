@@ -62,7 +62,7 @@ func (me *RTP) Format(pkt *av.Packet) []*Packet {
 		track = me.VideoTrack()
 
 	default:
-		panic(fmt.Sprintf("unrecognized packet type %02X", pkt.Type))
+		panic(fmt.Sprintf("unrecognized packet type 0x%02X", pkt.Type))
 	}
 
 	if track == nil {

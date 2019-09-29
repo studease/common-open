@@ -88,7 +88,7 @@ func (me *Value) Set(key string, value interface{}, offset ...uint16) *Value {
 		}
 
 	default:
-		panic(fmt.Errorf("unrecognized AMF type %02X", me.Type))
+		panic(fmt.Errorf("unrecognized AMF type 0x%02X", me.Type))
 	}
 
 	me.Key = key
@@ -106,7 +106,7 @@ func (me *Value) Get(key string) *Value {
 		return me.table[key]
 
 	default:
-		panic(fmt.Errorf("operation not allowed on this type %02X", me.Type))
+		panic(fmt.Errorf("operation not allowed on this type 0x%02X", me.Type))
 	}
 }
 

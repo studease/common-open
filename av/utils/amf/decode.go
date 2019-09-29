@@ -46,7 +46,7 @@ func Decode(v *Value, data []byte) (int, error) {
 	case LONG_STRING:
 		n, err = DecodeLongString(v, data[i:])
 	default:
-		return i, fmt.Errorf("unrecognized amf type: %02X", v.Type)
+		return i, fmt.Errorf("unrecognized amf type: 0x%02X", v.Type)
 	}
 
 	i += n
@@ -100,6 +100,8 @@ func DecodeString(v *Value, data []byte) (int, error) {
 	if n > 0 {
 		v.value = string(data[i : i+int(n)])
 		i += int(n)
+	} else {
+		v.value = ""
 	}
 
 	return i, nil

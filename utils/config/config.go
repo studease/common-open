@@ -29,11 +29,11 @@ type URL struct {
 	Path   string `xml:",innerxml"`
 }
 
-// Query config
-type Query struct {
+// DB config
+type DB struct {
 	Enable  bool   `xml:"enable,attr"`
-	Name    string `xml:""`
-	File    string `xml:""`
+	Driver  string `xml:""`
+	Source  string `xml:""`
 	History int    `xml:""`
 }
 

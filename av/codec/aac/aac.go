@@ -145,7 +145,7 @@ func (me *Context) Parse(p *av.Packet) error {
 		return me.parseRawFrameData(p.Timestamp, p.Payload[i:])
 
 	default:
-		err := fmt.Errorf("unrecognized AAC packet type: %02X", me.DataType)
+		err := fmt.Errorf("unrecognized AAC packet type: 0x%02X", me.DataType)
 		me.logger.Debugf(2, "%v", err)
 		return err
 	}

@@ -11,6 +11,7 @@ type MediaTrack struct {
 	logger     log.ILogger
 	info       *av.Information
 	codec      av.Codec
+	kind       string
 	id         int
 	readyState string
 	Context    av.IMediaContext
@@ -23,6 +24,14 @@ func (me *MediaTrack) Init(cc av.Codec, info *av.Information, logger log.ILogger
 	me.logger = logger
 	me.readyState = av.TRACK_LIVE
 	me.Context = codec.New(cc, info, factory)
+
+	switch me.codec {
+	case codec.AAC:
+		me.kind = av.KIND_AUDIO
+	case codec.AVC:
+		me.kind = av.KIND_VIDEO
+	}
+
 	return me
 }
 
@@ -43,7 +52,7 @@ func (me *MediaTrack) Information() *av.Information {
 
 // Kind returns kind of this track
 func (me *MediaTrack) Kind() string {
-	return av.KIND_AUDIO
+	return me.kind
 }
 
 // ReadyState returns ready state of this track

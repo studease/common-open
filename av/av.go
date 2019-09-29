@@ -31,7 +31,7 @@ type ISourceBuffer interface {
 	ISeekableStream
 
 	Append(p *Packet)
-	Write(name string, data []byte) (interface{}, error)
+	Write(name string, timestamp uint32, data []byte) (interface{}, error)
 	Timestamp() uint32
 	Bytes() []byte
 	Len() int
@@ -49,6 +49,7 @@ type IReadableStream interface {
 	events.IEventDispatcher
 	IMediaStream
 
+	Information() *Information
 	AppName() string
 	InstName() string
 	Name() string
@@ -58,10 +59,11 @@ type IReadableStream interface {
 	ClearDataFrame(key string)
 	GetDataFrame(key string) *Packet
 
-	Information() *Information
 	InfoFrame() *Packet
-	AudioInfoFrame() *Packet
-	VideoInfoFrame() *Packet
+	SetAudioInfoFrame(p *Packet)
+	SetVideoInfoFrame(p *Packet)
+	GetAudioInfoFrame() *Packet
+	GetVideoInfoFrame() *Packet
 }
 
 // ISinkableStream defines the basic sinkable stream
