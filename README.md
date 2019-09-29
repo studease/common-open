@@ -10,8 +10,10 @@ So is av, http and rtmp packages.
 Package target is used for load balencing while requesting an upstream server.
 
 
+----------
 ## Example
 
+```go
 import (
 	"time"
 	
@@ -78,3 +80,4 @@ func onConnect(e *Event.Event) {
 	obj := e.Target.(*Object)
 	obj.Anything()
 }
+```
