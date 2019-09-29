@@ -65,7 +65,8 @@ func (me *Object) connect() {
 }
 
 func main() {
-	listener := events.NewListener(onConnect, 1) // Auto remove listener after triggered "1" time[s]
+	// Auto remove listener after triggered "1" time[s]
+	listener := events.NewListener(onConnect, 1)
 	
 	obj := new(Object).Init(factory.NewLogger("OBJECT"))
 	obj.AddEventListener(Event.CONNECT, listener)
