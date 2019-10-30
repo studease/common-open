@@ -357,8 +357,8 @@ func FormatDuration(d time.Duration) Duration {
 		d %= time.Minute
 	}
 
-	n = d / time.Millisecond / 1000
-	tmp += fmt.Sprintf("%.3gS", float64(n))
+	d /= time.Millisecond
+	tmp += fmt.Sprintf("%.3gS", float64(d)/1000)
 
 	return Duration(tmp)
 }

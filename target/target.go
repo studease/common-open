@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	srvRe, _ = regexp.Compile("\\${SERVER.([-_.[:alnum:]]+)}")
+	srvRe, _ = regexp.Compile("\\${SERVER.([-\\.[:word:]]+)}")
 	mtx      sync.RWMutex
 	groups   = make(map[string]*Group)
 )

@@ -121,9 +121,9 @@ func (me *Context) Parse(p *av.Packet) error {
 		return err
 	}
 
-	p.Context = me
 	info := me.Information()
 	info.Timestamp += p.Timestamp
+	p.Context = me
 
 	i := 0
 
@@ -139,10 +139,10 @@ func (me *Context) Parse(p *av.Packet) error {
 
 	switch me.DataType {
 	case SPECIFIC_CONFIG:
-		return me.parseSpecificConfig(p.Timestamp, p.Payload[i:])
+		return me.parseSpecificConfig(p.Payload[i:])
 
 	case RAW_FRAME_DATA:
-		return me.parseRawFrameData(p.Timestamp, p.Payload[i:])
+		return me.parseRawFrameData(p.Payload[i:])
 
 	default:
 		err := fmt.Errorf("unrecognized AAC packet type: 0x%02X", me.DataType)
@@ -151,7 +151,7 @@ func (me *Context) Parse(p *av.Packet) error {
 	}
 }
 
-func (me *Context) parseSpecificConfig(timestamp uint32, data []byte) error {
+func (me *Context) parseSpecificConfig(data []byte) error {
 	if len(data) < 2 {
 		err := fmt.Errorf("data not enough while parsing AAC specific config")
 		me.logger.Debugf(2, "%v", err)
@@ -252,7 +252,7 @@ func (me *Context) parseSpecificConfig(timestamp uint32, data []byte) error {
 	return nil
 }
 
-func (me *Context) parseRawFrameData(timestamp uint32, data []byte) error {
+func (me *Context) parseRawFrameData(data []byte) error {
 	info := me.Information()
 
 	me.DTS = info.TimeBase + info.Timestamp

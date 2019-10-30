@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	timedReg, _ = regexp.Compile("^(?:(\\d+):(\\d+))?-(?:(\\d+):(\\d+))?$")
+	timedRe, _ = regexp.Compile("^(?:(\\d+):(\\d+))?-(?:(\\d+):(\\d+))?$")
 )
 
 // Server config
@@ -33,6 +33,9 @@ type Location struct {
 	Pattern string      `xml:"pattern,attr"`
 	Handler string      `xml:""`
 	Proxy   basecfg.URL `xml:""`
+
+	// live
+	Port int `xml:""`
 
 	// ws-chat
 	Protocol string            `xml:""`
@@ -79,7 +82,7 @@ func (me *Timed) Parse() error {
 		me.Value = "-"
 	}
 
-	arr := timedReg.FindStringSubmatch(me.Value)
+	arr := timedRe.FindStringSubmatch(me.Value)
 	if arr == nil {
 		return fmt.Errorf("not match")
 	}

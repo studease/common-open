@@ -126,7 +126,7 @@ func (me *Track) getAACPackets(pkt *av.Packet) []*Packet {
 		arr = make([]*Packet, 0)
 	)
 
-	ctx := me.Context.(*aac.Context)
+	ctx := me.Context().(*aac.Context)
 
 	// rtptime/timestamp = rate/1000
 	rtptime := int64(pkt.Timestamp) * int64(ctx.SamplingFrequency) / 1000
@@ -184,7 +184,7 @@ func (me *Track) getAVCPackets(pkt *av.Packet) []*Packet {
 		R   byte = 0x00
 	)
 
-	ctx := me.Context.(*avc.Context)
+	ctx := me.Context().(*avc.Context)
 
 	// rtptime/timestamp = rate/1000
 	rtptime := int64(pkt.Timestamp) * H264_FREQ / 1000

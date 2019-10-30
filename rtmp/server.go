@@ -3,10 +3,15 @@ package rtmp
 import (
 	"fmt"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
 
+	Code "github.com/studease/common/events/netstatusevent/code"
+	Level "github.com/studease/common/events/netstatusevent/level"
 	"github.com/studease/common/log"
 	rtmpcfg "github.com/studease/common/rtmp/config"
+	"github.com/studease/common/rtmp/message/command"
 	"github.com/studease/common/utils"
 )
 
@@ -14,23 +19,29 @@ import (
 const (
 	DEFAULT_PORT             = 1935
 	DEFAULT_TIMEOUT          = 10
+	DEFAULT_MAX_IDLE_TIME    = 3600
 	DEFAULT_SEND_BUFFER_SIZE = 65536
 	DEFAULT_READ_BUFFER_SIZE = 65536
 	DEFAULT_ROOT             = "applications"
 	DEFAULT_CORS             = "webroot/crossdomain.xml"
 	DEFAULT_TARGET           = "conf/target.xml"
 	DEFAULT_CHUNK_SIZE       = 4096
-	DEFAULT_MAX_IDLE_TIME    = 3600
 	DEFAULT_ACK_WINDOW_SIZE  = 2500000
 	DEFAULT_PEER_BANDWIDTH   = 2500000
 )
 
+var (
+	servers = make(map[int]*Server)
+)
+
 // Server defines parameters for running an RTMP server
 type Server struct {
-	CFG     *rtmpcfg.Server
-	Mux     utils.Mux
-	logger  log.ILogger
-	factory log.ILoggerFactory
+	CFG          *rtmpcfg.Server
+	Mux          utils.Mux
+	logger       log.ILogger
+	factory      log.ILoggerFactory
+	mtx          sync.RWMutex
+	applications map[string]*Application
 }
 
 // Init this class
@@ -39,6 +50,7 @@ func (me *Server) Init(cfg *rtmpcfg.Server, logger log.ILogger, factory log.ILog
 	me.CFG = cfg
 	me.logger = logger
 	me.factory = factory
+	me.applications = make(map[string]*Application)
 
 	if cfg.Port == 0 {
 		cfg.Port = DEFAULT_PORT
@@ -68,6 +80,7 @@ func (me *Server) Init(cfg *rtmpcfg.Server, logger log.ILogger, factory log.ILog
 		cfg.ChunkSize = DEFAULT_CHUNK_SIZE
 	}
 
+	servers[me.CFG.Port] = me
 	return me
 }
 
@@ -132,4 +145,59 @@ func (me *Server) Serve(l net.Listener) error {
 		nc := new(NetConnection).Init(c, me, me.logger, me.factory)
 		go nc.serve()
 	}
+}
+
+// Accept an NetConnection
+func (me *Server) Accept(nc *NetConnection) {
+	me.logger.Debugf(4, "Accepting connection: app=%s, inst=%s, id=%s", nc.AppName, nc.InstName, nc.FarID)
+
+	me.mtx.Lock()
+	defer me.mtx.Unlock()
+
+	app, ok := me.applications[nc.AppName]
+	if !ok {
+		app = new(Application).Init(nc.AppName, me.logger, me.factory)
+		me.applications[nc.AppName] = app
+	}
+
+	app.Add(nc)
+	atomic.StoreUint32(&nc.readyState, STATE_CONNECTED)
+}
+
+// Reject an NetConnection
+func (me *Server) Reject(nc *NetConnection, description string) {
+	nc.reply(command.ERROR, 1, Level.ERROR, Code.NETCONNECTION_CONNECT_REJECTED, description)
+	nc.Close()
+}
+
+// FindStream returns an existing stream
+func (me *Server) FindStream(appName string, instName string, name string) *Stream {
+	me.mtx.RLock()
+	defer me.mtx.RUnlock()
+
+	app, ok := me.applications[appName]
+	if ok {
+		return app.FindStream(instName, name)
+	}
+
+	return nil
+}
+
+// GetStream returns a stream, creating if not exists
+func (me *Server) GetStream(appName string, instName string, name string) *Stream {
+	me.mtx.RLock()
+	defer me.mtx.RUnlock()
+
+	app, ok := me.applications[appName]
+	if !ok {
+		app = new(Application).Init(appName, me.logger, me.factory)
+		me.applications[appName] = app
+	}
+
+	return app.GetStream(instName, name)
+}
+
+// GetServer returns the server listening on the port
+func GetServer(port int) *Server {
+	return servers[port]
 }

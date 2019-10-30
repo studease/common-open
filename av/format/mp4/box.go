@@ -160,10 +160,11 @@ func TRAK(track *Track) []byte {
 // TKHD (Track Header Box)
 func TKHD(track *Track) []byte {
 	info := track.Information()
+	ctx := track.Context().Basic()
 	i := track.ID()
 	w := info.Width
 	h := info.Height
-	d := info.Duration
+	d := ctx.Duration
 
 	return Box(TYPE_TKHD, []byte{
 		0x00, 0x00, 0x00, 0x07, // version(0) + flags
@@ -203,8 +204,9 @@ func MDIA(track *Track) []byte {
 // MDHD (Media Header Box)
 func MDHD(track *Track) []byte {
 	info := track.Information()
+	ctx := track.Context().Basic()
 	t := info.Timescale
-	d := info.Duration
+	d := ctx.Duration
 
 	return Box(TYPE_MDHD, []byte{
 		0x00, 0x00, 0x00, 0x00, // version(0) + flags
@@ -283,7 +285,7 @@ func STSD(track *Track) []byte {
 
 // MP4A (MPEG-4 Audio Box)
 func MP4A(track *Track) []byte {
-	ctx := track.Context.(*aac.Context)
+	ctx := track.Context().(*aac.Context)
 	n := ctx.ChannelConfiguration
 	r := ctx.SamplingFrequency
 
@@ -306,7 +308,7 @@ func MP4A(track *Track) []byte {
 
 // ESDS (Element Stream Descriptors Box)
 func ESDS(track *Track) []byte {
-	ctx := track.Context.(*aac.Context)
+	ctx := track.Context().(*aac.Context)
 	n := byte(len(ctx.Config))
 
 	data := []byte{
@@ -337,7 +339,7 @@ func ESDS(track *Track) []byte {
 // AVC1 (AVC Box)
 func AVC1(track *Track) []byte {
 	info := track.Information()
-	ctx := track.Context.(*avc.Context)
+	ctx := track.Context().(*avc.Context)
 	w := info.CodecWidth
 	h := info.CodecHeight
 
@@ -415,7 +417,7 @@ func MFHD(track *Track) []byte {
 
 // TRAF (Track Fragment Box)
 func TRAF(track *Track) []byte {
-	ctx := track.Context.Basic()
+	ctx := track.Context().Basic()
 	i := track.ID()
 	d := ctx.DTS
 
@@ -439,10 +441,9 @@ func TRAF(track *Track) []byte {
 
 // TRUN (Track Fragment Run Box)
 func TRUN(track *Track) []byte {
-	info := track.Information()
-	ctx := track.Context.Basic()
+	ctx := track.Context().Basic()
 	s := len(ctx.Data)
-	d := info.Duration
+	d := ctx.Duration
 	f := ctx.Flags
 	t := ctx.CTS
 
@@ -463,7 +464,7 @@ func TRUN(track *Track) []byte {
 
 // SDTP (Sample Dependency Type Box)
 func SDTP(track *Track) []byte {
-	ctx := track.Context.Basic()
+	ctx := track.Context().Basic()
 	f := ctx.Flags
 
 	data := []byte{

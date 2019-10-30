@@ -15,6 +15,11 @@ const (
 	AMF3 byte = 3
 )
 
+// Static constants
+var (
+	SERVER = ""
+)
+
 var (
 	r = utils.NewRegister()
 )

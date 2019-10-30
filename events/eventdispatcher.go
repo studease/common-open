@@ -142,10 +142,10 @@ func (me *EventDispatcher) dispatchEvent(l *list.List, event string, value refle
 	}()
 
 	curr := utils.GoID()
-	goid := atomic.LoadInt64(&me.goid)
 
-	if atomic.CompareAndSwapInt64(&me.goid, 0, curr) || goid != curr {
+	if atomic.LoadInt64(&me.goid) != curr {
 		me.mtx.Lock()
+		atomic.StoreInt64(&me.goid, curr)
 		defer func() {
 			atomic.StoreInt64(&me.goid, 0)
 			me.mtx.Unlock()

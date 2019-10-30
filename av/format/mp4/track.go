@@ -69,7 +69,7 @@ func (me *Track) getAudioSegment() []byte {
 	)
 
 	info := me.Information()
-	ctx := me.Context.Basic()
+	ctx := me.Context().Basic()
 
 	ctx.CTS = 0
 	ctx.DTS -= info.TimeBase
@@ -94,7 +94,7 @@ func (me *Track) getVideoSegment() []byte {
 	)
 
 	info := me.Information()
-	ctx := me.Context.Basic()
+	ctx := me.Context().Basic()
 
 	ctx.DTS -= info.TimeBase
 

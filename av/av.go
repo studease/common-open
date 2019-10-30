@@ -23,7 +23,6 @@ type ISegmableStream interface {
 
 	AddSourceBuffer(kind string, codec Codec) ISourceBuffer
 	RemoveSourceBuffer(b ISourceBuffer)
-	GetSegments(timestamp uint32, n int) []interface{}
 }
 
 // ISourceBuffer represents a chunk of media
@@ -41,6 +40,7 @@ type ISourceBuffer interface {
 type ISeekableStream interface {
 	AddPoint(timestamp uint32, value interface{})
 	GetValue(timestamp uint32, n int) []interface{}
+	GetLastN(n int) []interface{}
 	Clear()
 }
 
@@ -87,6 +87,7 @@ type IMediaTrack interface {
 	SetID(id int)
 	ID() int
 	Information() *Information
+	Context() IMediaContext
 	Kind() string
 	ReadyState() string
 	Close() error

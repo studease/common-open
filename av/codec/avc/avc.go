@@ -120,9 +120,9 @@ func (me *Context) Parse(p *av.Packet) error {
 		return err
 	}
 
-	p.Context = me
 	info := me.Information()
 	info.Timestamp += p.Timestamp
+	p.Context = me
 
 	i := 0
 
@@ -139,10 +139,10 @@ func (me *Context) Parse(p *av.Packet) error {
 
 	switch me.DataType {
 	case SEQUENCE_HEADER:
-		return me.parseDecoderConfigurationRecord(p.Timestamp, p.Payload[i:])
+		return me.parseDecoderConfigurationRecord(p.Payload[i:])
 
 	case NALU:
-		return me.parseNalUnits(p.Timestamp, p.Payload[i:])
+		return me.parseNalUnits(p.Payload[i:])
 
 	case END_OF_SEQUENCE:
 		me.logger.Debugf(2, "AVC sequence end")
@@ -156,7 +156,7 @@ func (me *Context) Parse(p *av.Packet) error {
 	return nil
 }
 
-func (me *Context) parseDecoderConfigurationRecord(timestamp uint32, data []byte) error {
+func (me *Context) parseDecoderConfigurationRecord(data []byte) error {
 	if len(data) < 7 {
 		err := fmt.Errorf("data not enough while parsing AVC decoder configuration record")
 		me.logger.Debugf(2, "%v", err)
@@ -195,7 +195,7 @@ func (me *Context) parseDecoderConfigurationRecord(timestamp uint32, data []byte
 
 		i += 2
 
-		err := me.parseSPS(timestamp, data[i:i+n])
+		err := me.parseSPS(data[i : i+n])
 		if err != nil {
 			me.logger.Debugf(2, "%v", err)
 			return err
@@ -215,7 +215,7 @@ func (me *Context) parseDecoderConfigurationRecord(timestamp uint32, data []byte
 
 		i += 2
 
-		err := me.parsePPS(timestamp, data[i:i+n])
+		err := me.parsePPS(data[i : i+n])
 		if err != nil {
 			me.logger.Debugf(2, "%v", err)
 			return err
@@ -227,7 +227,7 @@ func (me *Context) parseDecoderConfigurationRecord(timestamp uint32, data []byte
 	return nil
 }
 
-func (me *Context) parseNalUnits(timestamp uint32, data []byte) error {
+func (me *Context) parseNalUnits(data []byte) error {
 	size := len(data)
 	info := me.Information()
 
@@ -271,7 +271,7 @@ func (me *Context) parseNalUnits(timestamp uint32, data []byte) error {
 	return nil
 }
 
-func (me *Context) parseSPS(timestamp uint32, data []byte) error {
+func (me *Context) parseSPS(data []byte) error {
 	if len(data) < 4 {
 		err := fmt.Errorf("data not enough while parsing SPS")
 		me.logger.Debugf(2, "%v", err)
@@ -704,7 +704,7 @@ func (me *Context) extractRBSP(gb *utils.Golomb, data []byte) error {
 	return nil
 }
 
-func (me *Context) parsePPS(timestamp uint32, data []byte) error {
+func (me *Context) parsePPS(data []byte) error {
 	err := me.extractRBSP(&me.PPS.Golomb, data)
 	if err != nil {
 		me.logger.Debugf(2, "%v", err)
