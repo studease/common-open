@@ -5,11 +5,11 @@ import (
 )
 
 const (
-	// DEFAULT_VERSION of me lib in use
+	// DEFAULT_VERSION of this lib used.
 	DEFAULT_VERSION uint = 0
 )
 
-// Static constants
+// Static constants.
 const (
 	CRLF        = "\r\n"
 	IN          = "IN"          // <nettype>
@@ -33,7 +33,7 @@ const (
 	RTP_SAVP    = "RTP/SAVP"    // <proto>
 )
 
-// S=Session Level, M=Media Level, E=Either
+// S=Session Level, M=Media Level, E=Either.
 const (
 	CAT       = "cat"       // S - a=cat:<category>
 	KEYWDS    = "keywds"    // S - a=keywds:<keywords>
@@ -55,7 +55,7 @@ const (
 	FMTP      = "fmtp"      // M - a=fmtp:<format> <format specific parameters>
 )
 
-// SDP defines an SDP file
+// SDP defines an SDP file.
 type SDP struct {
 	V  uint        //   Protocol Version, v=0
 	O  Origin      //   Origin, o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
@@ -73,13 +73,13 @@ type SDP struct {
 	MD []MD        //   Zero or more media descriptions
 }
 
-// Init this class
+// Init this class.
 func (me *SDP) Init(ver uint) *SDP {
 	me.V = ver
 	return me
 }
 
-// Marshal returns the lined encoding of SDP
+// Marshal returns the lined encoding of this SDP.
 func (me *SDP) Marshal() ([]byte, error) {
 	tmp := fmt.Sprintf("v=%d", me.V) + CRLF
 	tmp += fmt.Sprintf("o=%s %s %s %s %s %s", me.O.UserName, me.O.SessID, me.O.SessVersion,
@@ -89,19 +89,15 @@ func (me *SDP) Marshal() ([]byte, error) {
 	if me.I != "" {
 		tmp += fmt.Sprintf("i=%s", me.I) + CRLF
 	}
-
 	if me.U != "" {
 		tmp += fmt.Sprintf("u=%s", me.U) + CRLF
 	}
-
 	if me.E != "" {
 		tmp += fmt.Sprintf("e=%s", me.E) + CRLF
 	}
-
 	if me.P != "" {
 		tmp += fmt.Sprintf("p=%s", me.P) + CRLF
 	}
-
 	if me.C.NetType != "" {
 		tmp += fmt.Sprintf("c=%s %s %s", me.C.NetType, me.C.AddrType, me.C.Address) + CRLF
 	}
@@ -182,13 +178,13 @@ type TD struct {
 	R string // * Repeat Times, r=<repeat interval> <active duration> <offsets from start-time>
 }
 
-// Attribute defines an attribute line
+// Attribute defines an attribute line.
 type Attribute struct {
 	Key   string
 	Value string
 }
 
-// Fmt returns a formated string, like "k:v"
+// Fmt returns a formated string, like "k:v".
 func (me *Attribute) Fmt() string {
 	tmp := me.Key
 

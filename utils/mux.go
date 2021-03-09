@@ -15,7 +15,7 @@ type muxEntry struct {
 	handler interface{}
 }
 
-// Mux is an command multiplexer. It matches the URL of each incoming command 
+// Mux is an command multiplexer. It matches the URL of each incoming command
 // against a list of registered patterns and calls the handler for the pattern
 // that most closely matches the URL.
 type Mux struct {
@@ -55,25 +55,6 @@ func (me *Mux) Handle(pattern string, handler interface{}) {
 	}
 }
 
-func appendOnSort(arr []muxEntry, e muxEntry) []muxEntry {
-	n := len(arr)
-
-	i := sort.Search(n, func(i int) bool {
-		return len(arr[i].pattern) < len(e.pattern)
-	})
-
-	if i == n {
-		return append(arr, e)
-	}
-
-	// We now know that i points at where we want to insert
-	arr = append(arr, muxEntry{}) // Try to grow the slice in place, any entry works
-	copy(arr[i+1:], arr[i:])      // Move shorter entries down
-	arr[i] = e
-
-	return arr
-}
-
 // Handler returns the handler to use for the given path of nc.
 // It always returns a non-nil handler.
 func (me *Mux) Handler(u *url.URL) (interface{}, string) {
@@ -90,47 +71,6 @@ func (me *Mux) Handler(u *url.URL) (interface{}, string) {
 	}
 
 	return me.match(path)
-}
-
-// stripHostPort returns h without any trailing ":<port>".
-func stripHostPort(host string) string {
-	// If no port on host, return unchanged
-	if strings.IndexByte(host, ':') == -1 {
-		return host
-	}
-
-	h, _, err := net.SplitHostPort(host)
-	if err != nil {
-		return host // on error, return unchanged
-	}
-
-	return h
-}
-
-// clean returns the canonical path for p, eliminating . and .. elements.
-func clean(p string) string {
-	if p == "" {
-		return "/"
-	}
-
-	if p[0] != '/' {
-		p = "/" + p
-	}
-
-	np := path.Clean(p)
-
-	// path.Clean removes trailing slash except for root;
-	// put the trailing slash back if necessary.
-	if p[len(p)-1] == '/' && np != "/" {
-		// Fast path for common case of p being the string we want:
-		if len(p) == len(np)+1 && strings.HasPrefix(p, np) {
-			np = p
-		} else {
-			np += "/"
-		}
-	}
-
-	return np
 }
 
 // shouldRedirect reports whether the given path and host should be redirected to
@@ -176,4 +116,64 @@ func (me *Mux) match(path string) (interface{}, string) {
 	}
 
 	return nil, ""
+}
+
+func appendOnSort(arr []muxEntry, e muxEntry) []muxEntry {
+	n := len(arr)
+
+	i := sort.Search(n, func(i int) bool {
+		return len(arr[i].pattern) < len(e.pattern)
+	})
+
+	if i == n {
+		return append(arr, e)
+	}
+
+	// We now know that i points at where we want to insert
+	arr = append(arr, muxEntry{}) // Try to grow the slice in place, any entry works
+	copy(arr[i+1:], arr[i:])      // Move shorter entries down
+	arr[i] = e
+
+	return arr
+}
+
+// stripHostPort returns h without any trailing ":<port>".
+func stripHostPort(host string) string {
+	// If no port on host, return unchanged
+	if strings.IndexByte(host, ':') == -1 {
+		return host
+	}
+
+	h, _, err := net.SplitHostPort(host)
+	if err != nil {
+		return host // on error, return unchanged
+	}
+
+	return h
+}
+
+// clean returns the canonical path for p, eliminating . and .. elements.
+func clean(p string) string {
+	if p == "" {
+		return "/"
+	}
+
+	if p[0] != '/' {
+		p = "/" + p
+	}
+
+	np := path.Clean(p)
+
+	// path.Clean removes trailing slash except for root;
+	// put the trailing slash back if necessary.
+	if p[len(p)-1] == '/' && np != "/" {
+		// Fast path for common case of p being the string we want:
+		if len(p) == len(np)+1 && strings.HasPrefix(p, np) {
+			np = p
+		} else {
+			np += "/"
+		}
+	}
+
+	return np
 }

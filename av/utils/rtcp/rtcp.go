@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-// Static constants
+// Static constants.
 const (
 	Version byte = 2
 )
 
-// FormatSR returns a formated SR packet with the given arguments
+// FormatSR returns a formated SR packet with the given arguments.
 func FormatSR(ssrc, timestamp, psent, osent uint32) []byte {
 	var (
 		b      bytes.Buffer
@@ -42,7 +42,7 @@ func FormatSR(ssrc, timestamp, psent, osent uint32) []byte {
 	return b.Bytes()
 }
 
-// FormatSDES returns a formated SDES packet with the given arguments
+// FormatSDES returns a formated SDES packet with the given arguments.
 func FormatSDES(ssrc uint32, items ...Item) []byte {
 	var (
 		b      bytes.Buffer
@@ -55,13 +55,11 @@ func FormatSDES(ssrc uint32, items ...Item) []byte {
 		byte(length >> 8), byte(length),
 		byte(ssrc >> 24), byte(ssrc >> 16), byte(ssrc >> 8), byte(ssrc),
 	})
-
 	for _, item := range items {
 		b.Write([]byte{
 			item.Type,
 			item.Length,
 		})
-
 		b.Write(item.Data)
 	}
 

@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"time"
+
+	"github.com/studease/common/av"
 )
 
 // Static constants
@@ -70,7 +72,7 @@ func (me *MPD) Init(profile string, typ string) *MPD {
 
 // Marshal returns the XML encoding of MPD
 func (me *MPD) Marshal() ([]byte, error) {
-	b, err := xml.Marshal(me)
+	b, err := xml.MarshalIndent(me, "", "    ")
 	return b, err
 }
 
@@ -210,7 +212,7 @@ type SegmentBase struct {
 type MultipleSegmentBase struct {
 	SegmentBase
 	Duration           uint              `xml:"duration,attr,omitempty"`      // O
-	StartNumber        uint              `xml:"startNumber,attr,omitempty"`   // O
+	StartNumber        string            `xml:"startNumber,attr,omitempty"`   // O
 	SegmentTimeline    []SegmentTimeline `xml:"SegmentTimeline,omitempty"`    // 0...1
 	BitstreamSwitching []URL             `xml:"BitstreamSwitching,omitempty"` // 0...1
 }
@@ -253,9 +255,9 @@ type SegmentTimeline struct {
 
 // S element
 type S struct {
-	T float64 `xml:"t,attr,omitempty"` // O
-	D float64 `xml:"d,attr"`           // M
-	R int     `xml:"r,attr,omitempty"` // OD - default: 0
+	T string `xml:"t,attr,omitempty"` // O
+	D string `xml:"d,attr"`           // M
+	R int    `xml:"r,attr,omitempty"` // OD - default: 0
 }
 
 // BaseURL element (inheritable)
@@ -264,6 +266,7 @@ type BaseURL struct {
 	ByteRange                string  `xml:"byteRange,attr,omitempty"`                // O
 	AvailabilityTimeOffset   float64 `xml:"availabilityTimeOffset,attr,omitempty"`   // O
 	AvailabilityTimeComplete bool    `xml:"availabilityTimeComplete,attr,omitempty"` // O
+	Content                  string  `xml:",innerxml"`
 }
 
 // ProgramInformation element of MPD
@@ -317,7 +320,7 @@ type DateTime string
 
 // FormatDateTime returns a formated string by the given time
 func FormatDateTime(t time.Time) DateTime {
-	return DateTime(t.Format("2006-01-02T15:04:05.000Z"))
+	return DateTime(t.In(av.UTC).Format("2006-01-02T15:04:05.000Z"))
 }
 
 // Duration is a formated string, like "P6Y1M2DT15H4S5.000S"
@@ -357,8 +360,9 @@ func FormatDuration(d time.Duration) Duration {
 		d %= time.Minute
 	}
 
-	d /= time.Millisecond
-	tmp += fmt.Sprintf("%.3gS", float64(d)/1000)
+	if n = d / time.Millisecond; n > 0 || tmp == "PT" {
+		tmp += fmt.Sprintf("%.3gS", float64(n)/1000)
+	}
 
 	return Duration(tmp)
 }

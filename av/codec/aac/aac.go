@@ -6,10 +6,12 @@ import (
 	"github.com/studease/common/av"
 	"github.com/studease/common/av/codec"
 	"github.com/studease/common/av/utils"
+	"github.com/studease/common/events"
+	MediaEvent "github.com/studease/common/events/mediaevent"
 	"github.com/studease/common/log"
 )
 
-// AOT types
+// AOT types.
 const (
 	AOT_NULL            uint8 = 0
 	AOT_AAC_MAIN        uint8 = 1  // Main
@@ -56,33 +58,44 @@ const (
 	AOT_USAC            uint8 = 45 // Unified Speech and Audio Coding
 )
 
-// Data types
+// Data types.
 const (
 	SPECIFIC_CONFIG = 0x00
 	RAW_FRAME_DATA  = 0x01
 )
 
 var (
-	// Rates in FLV
+	// Rates used in FLV.
 	Rates = [4]int{5500, 11025, 22050, 44100}
-	// SamplingFrequencys which AAC supported
+	// SamplingFrequencys which AAC supports.
 	SamplingFrequencys = [16]uint32{96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350}
-	// Channels for quick mapping
+	// Channels for quick mapping.
 	Channels = [8]uint16{0, 1, 2, 3, 4, 5, 6, 8}
+	// SilentFrames of AAC.
+	SilentFrames = [][]byte{
+		[]byte{0x00, 0xc8, 0x00, 0x80, 0x23, 0x80},
+		[]byte{0x21, 0x00, 0x49, 0x90, 0x02, 0x19, 0x00, 0x23, 0x80},
+		[]byte{0x00, 0xc8, 0x00, 0x80, 0x20, 0x84, 0x01, 0x26, 0x40, 0x08, 0x64, 0x00, 0x8e},
+		[]byte{0x00, 0xc8, 0x00, 0x80, 0x20, 0x84, 0x01, 0x26, 0x40, 0x08, 0x64, 0x00, 0x80, 0x2c, 0x80, 0x08, 0x02, 0x38},
+		[]byte{0x00, 0xc8, 0x00, 0x80, 0x20, 0x84, 0x01, 0x26, 0x40, 0x08, 0x64, 0x00, 0x82, 0x30, 0x04, 0x99, 0x00, 0x21, 0x90, 0x02, 0x38},
+		[]byte{0x00, 0xc8, 0x00, 0x80, 0x20, 0x84, 0x01, 0x26, 0x40, 0x08, 0x64, 0x00, 0x82, 0x30, 0x04, 0x99, 0x00, 0x21, 0x90, 0x02, 0x00, 0xb2, 0x00, 0x20, 0x08, 0xe0},
+	}
 )
 
 func init() {
-	codec.Register(codec.AAC, Context{})
+	codec.Register("AAC", AAC{})
 }
 
-// Context implements IMediaContext
-type Context struct {
-	av.Context
+// AAC IMediaStreamTrackSource.
+type AAC struct {
+	events.EventDispatcher
 
-	logger log.ILogger
+	logger    log.ILogger
+	info      *av.Information
+	infoframe *av.Packet
+	ctx       av.Context
 
 	// Specific Config
-	Golomb                          utils.Golomb
 	AudioObjectType                 uint8 // 5 bits
 	SamplingFrequencyIndex          uint8 // 4 bits
 	SamplingFrequency               uint32
@@ -95,79 +108,91 @@ type Context struct {
 	Config                          []byte
 }
 
-// Init this class
-func (me *Context) Init(info *av.Information, logger log.ILogger) av.IMediaContext {
-	me.Context.Init(info)
+// Init this class.
+func (me *AAC) Init(info *av.Information, logger log.ILogger) av.IMediaStreamTrackSource {
+	me.EventDispatcher.Init(logger)
 	me.logger = logger
-	me.MimeType = "audio/mp4"
-	me.Flags.IsLeading = 0
-	me.Flags.SampleDependsOn = 1
-	me.Flags.SampleIsDependedOn = 0
-	me.Flags.SampleHasRedundancy = 0
-	me.Flags.IsNonSync = 0
+	me.info = info
+	me.infoframe = nil
+	me.ctx.MimeType = "audio/mp4"
+	me.ctx.Codec = ""
+	me.ctx.RefSampleDuration = me.info.Timescale * 1024 / 44100
+	me.ctx.Flags.IsLeading = 0
+	me.ctx.Flags.SampleDependsOn = 1
+	me.ctx.Flags.SampleIsDependedOn = 0
+	me.ctx.Flags.SampleHasRedundancy = 0
+	me.ctx.Flags.IsNonSync = 0
 	return me
 }
 
-// Codec returns the codec ID of this context
-func (me *Context) Codec() av.Codec {
-	return codec.AAC
+// Kind returns the source name.
+func (me *AAC) Kind() string {
+	return "AAC"
 }
 
-// Parse an AAC packet
-func (me *Context) Parse(p *av.Packet) error {
-	if len(p.Payload) < 2 {
+// Context returns the source context.
+func (me *AAC) Context() *av.Context {
+	return &me.ctx
+}
+
+// SetInfoFrame stores the info frame for decoding.
+func (me *AAC) SetInfoFrame(pkt *av.Packet) {
+	me.infoframe = pkt
+}
+
+// GetInfoFrame returns the info frame.
+func (me *AAC) GetInfoFrame() *av.Packet {
+	return me.infoframe
+}
+
+// Sink a packet into the source.
+func (me *AAC) Sink(pkt *av.Packet) {
+	me.DispatchEvent(MediaEvent.New(MediaEvent.PACKET, me, pkt))
+}
+
+// Parse an AAC packet.
+func (me *AAC) Parse(pkt *av.Packet) error {
+	if pkt.Left() < 1 {
 		err := fmt.Errorf("data not enough while parsing AAC packet")
-		me.logger.Debugf(2, "%v", err)
+		me.logger.Errorf("%v", err)
 		return err
 	}
 
-	info := me.Information()
-	info.Timestamp += p.Timestamp
-	p.Context = me
+	me.info.Timestamp = pkt.Timestamp
 
-	i := 0
+	pkt.Set("DataType", pkt.Payload[pkt.Position])
+	pkt.Position++
+	pkt.Set("CTS", uint32(0))
 
-	tmp := p.Payload[i]
-	me.Format = tmp & 0xF0
-	me.SampleRate = (tmp >> 2) & 0x03
-	me.SampleSize = (tmp >> 1) & 0x01
-	me.SampleType = tmp & 0x01
-	i++
-
-	me.DataType = p.Payload[i]
-	i++
-
-	switch me.DataType {
+	switch pkt.Get("DataType").(byte) {
 	case SPECIFIC_CONFIG:
-		return me.parseSpecificConfig(p.Payload[i:])
-
+		return me.parseSpecificConfig(pkt)
 	case RAW_FRAME_DATA:
-		return me.parseRawFrameData(p.Payload[i:])
-
+		return me.parseRawFrameData(pkt)
 	default:
-		err := fmt.Errorf("unrecognized AAC packet type: 0x%02X", me.DataType)
-		me.logger.Debugf(2, "%v", err)
+		err := fmt.Errorf("unrecognized AAC packet type: 0x%02X", pkt.Get("DataType").(byte))
+		me.logger.Errorf("%v", err)
 		return err
 	}
 }
 
-func (me *Context) parseSpecificConfig(data []byte) error {
-	if len(data) < 2 {
+func (me *AAC) parseSpecificConfig(pkt *av.Packet) error {
+	if pkt.Left() < 2 {
 		err := fmt.Errorf("data not enough while parsing AAC specific config")
-		me.logger.Debugf(2, "%v", err)
+		me.logger.Errorf("%v", err)
 		return err
 	}
 
+	me.infoframe = pkt
 	defer (func() {
-		me.Codecs = fmt.Sprintf("mp4a.40.%d", me.AudioObjectType)
+		me.ctx.Codec = fmt.Sprintf("mp4a.40.%d", me.AudioObjectType)
+		me.info.Codecs = append(me.info.Codecs, me.ctx.Codec)
 	})()
 
-	info := me.Information()
-
-	gb := me.Golomb.Init(data)
+	gb := new(utils.Golomb).Init(pkt.Payload[pkt.Position:])
 	if gb == nil {
-		err := fmt.Errorf("failed to init Golomb")
-		me.logger.Debugf(2, "%v", err)
+		err := fmt.Errorf("failed to init Golomb while parsing AAC specific config")
+		me.logger.Errorf("%v", err)
 		return err
 	}
 
@@ -182,10 +207,12 @@ func (me *Context) parseSpecificConfig(data []byte) error {
 	} else {
 		me.SamplingFrequency = SamplingFrequencys[me.SamplingFrequencyIndex]
 	}
+	me.info.SampleRate = me.SamplingFrequency
 
 	me.ChannelConfiguration = uint8(gb.ReadBits(4))
 	if me.ChannelConfiguration < 16 {
 		me.Channels = Channels[me.ChannelConfiguration]
+		me.info.Channels = uint32(me.Channels)
 	}
 
 	if me.AudioObjectType == AOT_SBR || (me.AudioObjectType == AOT_PS &&
@@ -197,14 +224,16 @@ func (me *Context) parseSpecificConfig(data []byte) error {
 		} else {
 			me.ExtensionSamplingFrequency = SamplingFrequencys[me.ExtensionSamplingFrequencyIndex]
 		}
+		me.info.SampleRate = me.ExtensionSamplingFrequency
 
 		me.ExtensionAudioObjectType = uint8(gb.ReadBits(5))
 		switch me.ExtensionAudioObjectType {
 		case AOT_ESCAPE:
 			me.ExtensionAudioObjectType = 32 + uint8(gb.ReadBits(6))
-
 		case AOT_ER_BSAC:
 			me.ExtensionChannelConfiguration = uint8(gb.ReadBits(4))
+			me.Channels = Channels[me.ExtensionChannelConfiguration]
+			me.info.Channels = uint32(me.ExtensionChannelConfiguration)
 		}
 	} else {
 		me.ExtensionAudioObjectType = AOT_NULL
@@ -219,12 +248,12 @@ func (me *Context) parseSpecificConfig(data []byte) error {
 
 		err := me.parseConfigALS(gb)
 		if err != nil {
-			me.logger.Debugf(2, "Failed to parse AAC config ALS")
+			me.logger.Errorf("Failed to parse AAC config ALS")
 			return err
 		}
 	}
 
-	info.RefSampleDuration = info.Timescale * 1024 / me.SamplingFrequency
+	me.ctx.RefSampleDuration = me.info.Timescale * 1024 / me.SamplingFrequency
 
 	// Force to AOT_SBR
 	me.AudioObjectType = AOT_SBR
@@ -248,20 +277,17 @@ func (me *Context) parseSpecificConfig(data []byte) error {
 			me.SamplingFrequencyIndex<<7 | me.ChannelConfiguration<<3,
 		}
 	}
-
 	return nil
 }
 
-func (me *Context) parseRawFrameData(data []byte) error {
-	info := me.Information()
-
-	me.DTS = info.TimeBase + info.Timestamp
-	me.PTS = me.DTS
-	me.Data = data
+func (me *AAC) parseRawFrameData(pkt *av.Packet) error {
+	pkt.Set("DTS", me.info.Timestamp)
+	pkt.Set("PTS", pkt.Get("DTS").(uint32))
+	pkt.Set("Data", pkt.Payload[pkt.Position:])
 	return nil
 }
 
-func (me *Context) parseConfigALS(gb *utils.Golomb) error {
+func (me *AAC) parseConfigALS(gb *utils.Golomb) error {
 	if gb.Left() < 112 {
 		return fmt.Errorf("data not enough while parsing ALS config")
 	}
@@ -273,6 +299,7 @@ func (me *Context) parseConfigALS(gb *utils.Golomb) error {
 	// Override AudioSpecificConfig channel configuration and sample rate
 	// which are buggy in old ALS conformance files
 	me.SamplingFrequency = uint32(gb.ReadBitsLong(32))
+	me.info.SampleRate = me.SamplingFrequency
 
 	// Skip number of samples
 	gb.SkipBits(32)
@@ -280,6 +307,6 @@ func (me *Context) parseConfigALS(gb *utils.Golomb) error {
 	// Read number of channels
 	me.ChannelConfiguration = 0
 	me.Channels = uint16(gb.ReadBits(16)) + 1
-
+	me.info.Channels = uint32(me.Channels)
 	return nil
 }

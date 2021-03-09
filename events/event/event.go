@@ -25,25 +25,20 @@ const (
 type Event struct {
 	Type            string
 	Target          interface{}
-	stopPropagation bool
+	StopPropagation bool
 }
 
 // Init this class
 func (me *Event) Init(typ string, target interface{}) *Event {
 	me.Type = typ
 	me.Target = target
-	me.stopPropagation = false
+	me.StopPropagation = false
 	return me
 }
 
 // Clone an instance of an Event subclass
 func (me *Event) Clone() *Event {
 	return New(me.Type, me.Target)
-}
-
-// StopPropagation prevents processing of any event listeners in nodes subsequent to the current node in the event flow
-func (me *Event) StopPropagation() {
-	me.stopPropagation = true
 }
 
 // String returns a string containing all the properties of the Event object

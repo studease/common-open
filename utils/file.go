@@ -15,7 +15,7 @@ func Create(path string) (*os.File, error) {
 	return os.Create(path)
 }
 
-// Open opens the named file with mode 0666 (before umask) for reading & writing, without truncating
+// OpenFile opens the named file with mode 0666 (before umask) for reading & writing, without truncating
 func OpenFile(path string, flag int) (*os.File, error) {
 	err := MkdirAll(path)
 	if err != nil {

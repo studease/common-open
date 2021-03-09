@@ -6,7 +6,7 @@ import (
 	"github.com/studease/common/av/utils"
 )
 
-// Packet types
+// Packet types.
 const (
 	TYPE_SR   byte = 200
 	TYPE_RR   byte = 201
@@ -15,7 +15,7 @@ const (
 	TYPE_APP  byte = 204
 )
 
-// SDES types
+// SDES types.
 const (
 	SDES_END   uint8 = 0
 	SDES_CNAME uint8 = 1
@@ -27,15 +27,6 @@ const (
 	SDES_NOTE  uint8 = 7
 	SDES_PRIV  uint8 = 8
 )
-
-// Header of RTCP packet
-type Header struct {
-	V      byte   // 2 bits
-	P      byte   // 1 bit
-	RC     byte   // 5 bits
-	PT     byte   // 1 byte
-	Length uint16 // 2 bytes
-}
 
 // SR (Sender Report)
 type SR struct {
@@ -83,9 +74,13 @@ type BYE struct {
 	SRC []uint32
 }
 
-// Packet of RTCP
+// Packet defines an RTCP packet.
 type Packet struct {
-	Header
+	V      byte   // 2 bits
+	P      byte   // 1 bit
+	RC     byte   // 5 bits
+	PT     byte   // 1 byte
+	Length uint16 // 2 bytes
 	SR
 	RR
 	SDES
@@ -93,12 +88,12 @@ type Packet struct {
 	Data []byte
 }
 
-// Init this class
+// Init this class.
 func (me *Packet) Init() *Packet {
 	return me
 }
 
-// Parse the given data as an RTCP packet
+// Parse the given data as an RTCP packet.
 func (me *Packet) Parse(data []byte) (int, error) {
 	var (
 		size = len(data)

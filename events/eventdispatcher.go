@@ -1,139 +1,127 @@
 package events
 
 import (
-	"container/list"
 	"reflect"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 
-	"github.com/studease/common/events/internal/action"
 	"github.com/studease/common/log"
 	"github.com/studease/common/utils"
 )
 
+// Static constants.
 const (
-	// MaxRecursion of event flows
 	MaxRecursion int32 = 8
 )
 
-// EventDispatcher is the base class for all classes that dispatch events
+// EventDispatcher is the base class for all classes that dispatch events.
+// It uses array instead of list, which causes the add/remove method expensive.
+// However, it is possible to clone the listener group fast while triggering an event.
+// And, the frequency of triggering event is much higher than that of add/remove.
 type EventDispatcher struct {
-	mtx       sync.RWMutex
 	logger    log.ILogger
-	listeners map[string]*list.List
-	recursion int32
+	mtx       sync.Mutex
+	listeners map[string]map[uintptr]*EventListener
 	goid      int64
-	manager   action.Manager
+	recursion int32
 }
 
-// Init this class
+// Init this class.
 func (me *EventDispatcher) Init(logger log.ILogger) *EventDispatcher {
 	me.logger = logger
-	me.listeners = make(map[string]*list.List)
-	me.recursion = 0
+	me.listeners = make(map[string]map[uintptr]*EventListener)
 	me.goid = 0
-	me.manager.Init()
+	me.recursion = 0
 	return me
 }
 
-// AddEventListener registers an event listener object with an EventDispatcher object so that the listener receives notification of an event
+// AddEventListener registers an event listener object with an EventDispatcher object so that the listener receives notification of an event.
 func (me *EventDispatcher) AddEventListener(event string, listener *EventListener) {
-	me.logger.Debugf(1, "Adding event listener: type=%s, listener=%v", event, listener)
-
 	if event == "" || listener == nil {
-		me.logger.Debugf(1, "Event type or listener not found: type=%s, listener=%v", event, listener)
+		me.logger.Debugf(1, "Event type or listener not present: type=%s, listener=%v", event, listener)
 		return
 	}
 
-	if atomic.LoadInt32(&me.recursion) > 0 {
-		me.manager.Append(action.New(action.ADD, event, listener))
-		return
+	self := utils.GoID()
+	if atomic.LoadInt64(&me.goid) != self {
+		me.mtx.Lock()
+		atomic.StoreInt64(&me.goid, self)
+		defer func() {
+			atomic.StoreInt64(&me.goid, 0)
+			me.mtx.Unlock()
+		}()
 	}
-
-	me.mtx.Lock()
-	defer me.mtx.Unlock()
 
 	me.addEventListener(event, listener)
 }
 
 func (me *EventDispatcher) addEventListener(event string, listener *EventListener) {
-	l := me.listeners[event]
-	if l == nil {
-		l = list.New()
-		me.listeners[event] = l
+	evts := me.listeners[event]
+	if evts == nil {
+		evts = make(map[uintptr]*EventListener, 0)
+		me.listeners[event] = evts
 	}
-
-	l.PushBack(listener)
+	me.logger.Debugf(1, "Adding event listener: type=%s, listener=%v", event, listener)
+	evts[uintptr(unsafe.Pointer(listener))] = listener
 }
 
-// RemoveEventListener removes an event listener from the EventDispatcher object
+// RemoveEventListener removes an event listener from the EventDispatcher object.
 func (me *EventDispatcher) RemoveEventListener(event string, listener *EventListener) {
-	me.logger.Debugf(1, "Removing event listener: type=%s, listener=%v", event, listener)
-
 	if event == "" || listener == nil {
-		me.logger.Debugf(1, "Event type or listener not found: type=%s, listener=%v", event, listener)
+		me.logger.Debugf(1, "Event type or listener not present: type=%s, listener=%v", event, listener)
 		return
 	}
 
-	if atomic.LoadInt32(&me.recursion) > 0 {
-		me.manager.Append(action.New(action.REMOVE, event, listener))
-		return
+	self := utils.GoID()
+	if atomic.LoadInt64(&me.goid) != self {
+		me.mtx.Lock()
+		atomic.StoreInt64(&me.goid, self)
+		defer func() {
+			atomic.StoreInt64(&me.goid, 0)
+			me.mtx.Unlock()
+		}()
 	}
-
-	me.mtx.Lock()
-	defer me.mtx.Unlock()
 
 	me.removeEventListener(event, listener)
 }
 
 func (me *EventDispatcher) removeEventListener(event string, listener *EventListener) {
-	l := me.listeners[event]
-	if l == nil {
+	evts := me.listeners[event]
+	if evts == nil {
 		me.logger.Debugf(1, "Listeners not found: type=%s", event)
 		return
 	}
-
-	for e := l.Front(); e != nil; e = e.Next() {
-		if e.Value.(*EventListener) == listener {
-			l.Remove(e)
-			break
-		}
-	}
+	me.logger.Debugf(1, "Removing event listener: type=%s, listener=%v", event, listener)
+	delete(evts, uintptr(unsafe.Pointer(listener)))
 }
 
-// HasEventListener checks whether an event listener is registered with this EventDispatcher object for the specified event type
+// HasEventListener checks whether an event listener is registered with this EventDispatcher object for the specified event type.
 func (me *EventDispatcher) HasEventListener(event string) bool {
-	curr := utils.GoID()
-	goid := atomic.LoadInt64(&me.goid)
-
-	if atomic.CompareAndSwapInt64(&me.goid, 0, curr) || goid != curr {
-		me.mtx.RLock()
-		defer me.mtx.RUnlock()
+	self := utils.GoID()
+	if atomic.LoadInt64(&me.goid) != self {
+		me.mtx.Lock()
+		atomic.StoreInt64(&me.goid, self)
+		defer func() {
+			atomic.StoreInt64(&me.goid, 0)
+			me.mtx.Unlock()
+		}()
 	}
 
-	l := me.listeners[event]
-	return l != nil && l.Len() != 0
+	evts := me.listeners[event]
+	return evts != nil && len(evts) != 0
 }
 
-// DispatchEvent dispatches an event into the event flow
-func (me *EventDispatcher) DispatchEvent(e interface{}) {
+// DispatchEvent dispatches an event into the event flow.
+func (me *EventDispatcher) DispatchEvent(evt interface{}) {
 	defer func() {
 		if err := recover(); err != nil {
 			me.logger.Debugf(1, "Failed to reflect event: %v", err)
 		}
 	}()
 
-	value := reflect.ValueOf(e)
+	value := reflect.ValueOf(evt)
 	event := value.Elem().FieldByName("Type").String()
-
-	me.logger.Debugf(0, "Dispatching event: %s", event)
-	me.dispatchEvent(me.listeners[event], event, value)
-}
-
-func (me *EventDispatcher) dispatchEvent(l *list.List, event string, value reflect.Value) {
-	if l == nil {
-		return
-	}
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -141,50 +129,45 @@ func (me *EventDispatcher) dispatchEvent(l *list.List, event string, value refle
 		}
 	}()
 
-	curr := utils.GoID()
-
-	if atomic.LoadInt64(&me.goid) != curr {
+	// It is not recommended which multi-goroutines call the same target,
+	// especially in high-frequency. Better to run as self-driven.
+	self := utils.GoID()
+	if atomic.LoadInt64(&me.goid) != self {
 		me.mtx.Lock()
-		atomic.StoreInt64(&me.goid, curr)
+		atomic.StoreInt64(&me.goid, self)
 		defer func() {
 			atomic.StoreInt64(&me.goid, 0)
 			me.mtx.Unlock()
 		}()
 	}
 
+	me.logger.Debugf(0, "Dispatching event: %s", event)
 	recursion := atomic.AddInt32(&me.recursion, 1)
 	defer func() {
 		atomic.AddInt32(&me.recursion, -1)
 	}()
-
 	if recursion > MaxRecursion {
 		panic("max recursion reached")
 	}
 
-	for e := l.Front(); e != nil; e = e.Next() {
-		listener := e.Value.(*EventListener)
+	// Make a shallow copy of the listener map, so that it triggers the event to the exact listeners.
+	evts := me.listeners[event]
+	cloned := make(map[uintptr]*EventListener, len(evts))
+	for k, v := range evts {
+		cloned[k] = v
+	}
+
+	for _, listener := range cloned {
 		reflect.ValueOf(listener.handler).Call([]reflect.Value{value})
 
 		if listener.count > 0 {
-			listener.count--
-			if listener.count == 0 {
-				me.RemoveEventListener(event, listener)
+			if listener.count--; listener.count == 0 {
+				me.removeEventListener(event, listener)
 			}
 		}
-
-		stopPropagation := value.Elem().FieldByName("stopPropagation").Bool()
-		if stopPropagation {
+		if stopPropagation := value.Elem().FieldByName("StopPropagation").Bool(); stopPropagation {
 			me.logger.Debugf(1, "Stop propagation event: type=%s", event)
 			break
 		}
 	}
-
-	me.manager.ForEach(func(a *action.Action) {
-		switch a.Type {
-		case action.ADD:
-			me.addEventListener(a.Event, a.Listener.(*EventListener))
-		case action.REMOVE:
-			me.removeEventListener(a.Event, a.Listener.(*EventListener))
-		}
-	})
 }
